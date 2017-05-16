@@ -1,8 +1,16 @@
 /*global define*/
 define([
-        './defaultValue'
+        './defaultValue',
+        './defined',
+        './defineProperties',
+        './RequestState',
+        './RequestType'
     ], function(
-        defaultValue) {
+        defaultValue,
+        defined,
+        defineProperties,
+        RequestState,
+        RequestType) {
     'use strict';
 
     /**
@@ -14,55 +22,59 @@ define([
      */
     function Request(options) {
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
-
         /**
          * The URL to request.
          */
         this.url = options.url;
 
         /**
-         * Extra parameters to send with the request. For example, HTTP headers or jsonp parameters.
-         */
-        this.parameters = options.parameters;
-
-        /**
-         * The actual function that makes the request.
+         * The actual function that makes the request. Returns a promise for the requested data.
          */
         this.requestFunction = options.requestFunction;
 
         /**
          * Type of request. Used for more fine-grained priority sorting.
          */
-        this.type = options.type;
+        this.type = defaultValue(options.type, RequestType.OTHER);
 
         /**
-         * Specifies that the request should be deferred until an open slot is available.
-         * A deferred request will always return a promise, which is suitable for data
-         * sources and utility functions.
+         * If false, the request will be sent immediately. If true, the request will be throttled and sent based
+         * on priority.
          */
-        this.defer = defaultValue(options.defer, false);
+        this.throttle = defaultValue(options.throttle, false);
 
         /**
          * The distance from the camera, used to prioritize requests.
          */
         this.distance = defaultValue(options.distance, 0.0);
 
-        // Helper members for RequestScheduler
+        /**
+         * The screen-space-error, used to prioritize requests.
+         */
+        this.screenSpaceError = defaultValue(options.screenSpaceError, 0.0);
 
         /**
-         * A promise for when a deferred request can start.
-         *
-         * @private
+         * The current state of the request.
          */
-        this.startPromise = undefined;
+        this.state = RequestState.INITIAL;
 
         /**
-         * Reference to a {@link RequestScheduler~RequestServer}.
-         *
-         * @private
+         * Reference to the underlying XMLHttpRequest so that it may be cancelled.
          */
-        this.server = options.server;
+        this.xhr = undefined;
+
+        /**
+         * The requests's deferred promise.
+         */
+        this.deferred = undefined;
     }
+
+    /**
+     * Mark the request as cancelled.
+     */
+    Request.prototype.cancel = function() {
+        this.state = RequestState.CANCELLED;
+    };
 
     return Request;
 });

@@ -16,7 +16,6 @@ define([
         './Math',
         './Rectangle',
         './Request',
-        './RequestScheduler',
         './RequestType',
         './TerrainProvider',
         './TileProviderError'
@@ -37,7 +36,6 @@ define([
         CesiumMath,
         Rectangle,
         Request,
-        RequestScheduler,
         RequestType,
         TerrainProvider,
         TileProviderError) {
@@ -152,7 +150,7 @@ define([
         }
 
         function requestMetadata() {
-            when(RequestScheduler.request(that._url, loadXML), metadataSuccess, metadataFailure);
+            when(loadXML(that._url), metadataSuccess, metadataFailure);
         }
 
         requestMetadata();
@@ -280,18 +278,15 @@ define([
             url = proxy.getURL(url);
         }
 
-        if (!defined(request) || (request === false)) {
-            // If a request object isn't provided, perform an immediate request
+        // TODO - remove later, this to handle the deprecated throttleRequests parameter
+        if (typeof request === 'boolean') {
             request = new Request({
-                defer : true
+                throttle : request, // throttleRequests - deprecated
+                type : RequestType.TERRAIN
             });
         }
 
-        request.url = url;
-        request.requestFunction = loadImage;
-        request.type = RequestType.TERRAIN;
-
-        var promise = RequestScheduler.schedule(request);
+        var promise = loadImage(url, undefined, request);
         if (!defined(promise)) {
             return undefined;
         }

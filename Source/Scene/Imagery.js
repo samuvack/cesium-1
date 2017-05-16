@@ -20,6 +20,7 @@ define([
         this.x = x;
         this.y = y;
         this.level = level;
+        this.request = undefined;
 
         if (level !== 0) {
             var parentX = x / 2 | 0;

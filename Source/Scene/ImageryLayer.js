@@ -12,6 +12,9 @@ define([
         '../Core/Math',
         '../Core/PixelFormat',
         '../Core/Rectangle',
+        '../Core/Request',
+        '../Core/RequestState',
+        '../Core/RequestType',
         '../Core/TerrainProvider',
         '../Core/TileProviderError',
         '../Core/WebMercatorProjection',
@@ -670,14 +673,23 @@ define([
 
             imagery.image = image;
             imagery.state = ImageryState.RECEIVED;
+            imagery.request = undefined;
 
             TileProviderError.handleSuccess(that._requestImageError);
         }
 
         function failure(e) {
+            if (imagery.request.state === RequestState.CANCELLED) {
+                // Cancelled due to low priority - try again later.
+                imagery.state = ImageryState.UNLOADED;
+                imagery.request = undefined;
+                return;
+            }
+
             // Initially assume failure.  handleError may retry, in which case the state will
             // change to TRANSITIONING.
             imagery.state = ImageryState.FAILED;
+            imagery.request = undefined;
 
             var message = 'Failed to obtain image tile X: ' + imagery.x + ' Y: ' + imagery.y + ' Level: ' + imagery.level + '.';
             that._requestImageError = TileProviderError.handleError(
@@ -691,12 +703,19 @@ define([
         }
 
         function doRequest() {
+            var request = new Request({
+                distance : distance,
+                type : RequestType.IMAGERY,
+                throttle : true
+            });
+            imagery.request = request;
             imagery.state = ImageryState.TRANSITIONING;
-            var imagePromise = imageryProvider.requestImage(imagery.x, imagery.y, imagery.level, distance);
+            var imagePromise = imageryProvider.requestImage(imagery.x, imagery.y, imagery.level, request);
 
             if (!defined(imagePromise)) {
                 // Too many parallel requests, so postpone loading tile.
                 imagery.state = ImageryState.UNLOADED;
+                imagery.request = undefined;
                 return;
             }
 
