@@ -29,6 +29,7 @@ define([
         '../Core/mergeSort',
         '../Core/Occluder',
         '../Core/PixelFormat',
+        '../Core/RequestScheduler',
         '../Core/ShowGeometryInstanceAttribute',
         '../Core/Transforms',
         '../Renderer/ClearCommand',
@@ -104,6 +105,7 @@ define([
         mergeSort,
         Occluder,
         PixelFormat,
+        RequestScheduler,
         ShowGeometryInstanceAttribute,
         Transforms,
         ClearCommand,
@@ -2818,6 +2820,7 @@ define([
 
         var object = this._pickFramebuffer.end(scratchRectangle);
         context.endFrame();
+        RequestScheduler.update();
         callAfterRenderFunctions(frameState);
         return object;
     };
