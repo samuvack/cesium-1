@@ -459,11 +459,11 @@ directory:
 
 <p>
 Once the server is running, you can access the JSCoverage web interface by
-visiting the URL <code>http://127.0.0.1:8080/jscoverage.html</code>, and you can
+visiting the URL <code>http://127.0.0.1:8081/jscoverage.html</code>, and you can
 load the <code>doc/example/index.html</code> file by entering
 <code>index.html</code> in the "URL" input field.  (Or you can do this all in
 one step by loading the URL
-<code>http://127.0.0.1:8080/jscoverage.html?index.html</code> in your web
+<code>http://127.0.0.1:8081/jscoverage.html?index.html</code> in your web
 browser.)  The
 <code>jscoverage-server</code> program automatically instruments any served
 JavaScript code, so that code coverage data will be gathered as the code is
@@ -522,7 +522,7 @@ To use <code>jscoverage-server</code> as a proxy server, use the <code>--proxy</
 </pre>
 
 <p>
-Configure your browser to use an HTTP proxy with address 127.0.0.1 and port 8080.
+Configure your browser to use an HTTP proxy with address 127.0.0.1 and port 8081.
 You can then generate code coverage data for a web page on the server <code>example.com</code>
 by accessing the JSCoverage web interface at the special URL <code>http://example.com/jscoverage.html</code>.  
 Note that this URL is not provided by the <code>example.com</code> server; it is automatically generated
@@ -577,7 +577,7 @@ jscoverage-server --no-instrument=/scripts/
 </pre>
 This option may be given multiple times.
 <dt><code>--port=<var>PORT</var></code>
-<dd>Run the server on the port given by <var>PORT</var>.  The default is port 8080.
+<dd>Run the server on the port given by <var>PORT</var>.  The default is port 8081.
 <dt><code>--proxy</code>
 <dd>Run as a proxy server.
 <dt><code>--report-dir=<var>PATH</var></code>

@@ -776,7 +776,7 @@ JsUnitTestManager.prototype.userConfirm = function(aMessage) {
     return this._uiManager.userConfirm(aMessage);
 }
 
-JsUnitTestManager.DEFAULT_SUBMIT_WEBSERVER = "localhost:8080";
+JsUnitTestManager.DEFAULT_SUBMIT_WEBSERVER = "localhost:8081";
 
 JsUnitTestManager.prototype._submitUrlFromSpecifiedUrl = function() {
     var result = "";

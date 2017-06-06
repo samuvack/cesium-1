@@ -49,7 +49,7 @@ defineSuite([
     it('remove', function() {
         TrustedServers.add('cesiumjs.org', 81);
         expect(TrustedServers.contains('http://cesiumjs.org:81/index.html')).toBe(true);
-        TrustedServers.remove('cesiumjs.org', 8080);
+        TrustedServers.remove('cesiumjs.org', 8081);
         expect(TrustedServers.contains('http://cesiumjs.org:81/index.html')).toBe(true);
         TrustedServers.remove('cesiumjs.org', 81);
         expect(TrustedServers.contains('http://cesiumjs.org:81/index.html')).toBe(false);
