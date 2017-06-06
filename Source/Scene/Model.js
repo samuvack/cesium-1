@@ -35,7 +35,6 @@ define([
         '../Core/PrimitiveType',
         '../Core/Quaternion',
         '../Core/Queue',
-        '../Core/RequestScheduler',
         '../Core/RuntimeError',
         '../Core/Transforms',
         '../Core/WebGLConstants',
@@ -105,7 +104,6 @@ define([
         PrimitiveType,
         Quaternion,
         Queue,
-        RequestScheduler,
         RuntimeError,
         Transforms,
         WebGLConstants,
@@ -244,9 +242,7 @@ define([
     // Note that this is a global cache, compared to renderer resources, which
     // are cached per context.
     function CachedGltf(options) {
-        this._gltf = modelMaterialsCommon(gltfDefaults(options.gltf), {
-            addBatchIdToGeneratedShaders : options.addBatchIdToGeneratedShaders
-        });
+        this._gltf = modelMaterialsCommon(gltfDefaults(options.gltf));
         this._bgltf = options.bgltf;
         this.ready = options.ready;
         this.modelsToLoad = [];
@@ -345,7 +341,6 @@ define([
      * @param {Boolean} [options.debugWireframe=false] For debugging only. Draws the model in wireframe.
      * @param {HeightReference} [options.heightReference] Determines how the model is drawn relative to terrain.
      * @param {Scene} [options.scene] Must be passed in for models that use the height reference property.
-     * @param {Boolean} [options.addBatchIdToGeneratedShaders=false] Determines if shaders generated for materials using the KHR_materials_common extension should include a batchId attribute. For models contained in b3dm tiles.
      * @param {DistanceDisplayCondition} [options.distanceDisplayCondition] The condition specifying at what distance from the camera that this model will be displayed.
      * @param {Color} [options.color=Color.WHITE] A color that blends with the model's rendered color.
      * @param {ColorBlendMode} [options.colorBlendMode=ColorBlendMode.HIGHLIGHT] Defines how the color blends with the model.
@@ -395,15 +390,13 @@ define([
                     cachedGltf = new CachedGltf({
                         gltf : result.glTF,
                         bgltf : gltf,
-                        ready : true,
-                        addBatchIdToGeneratedShaders : options.addBatchIdToGeneratedShaders
+                        ready : true
                     });
                 } else {
                     // Normal glTF (JSON)
                     cachedGltf = new CachedGltf({
                         gltf : options.gltf,
-                        ready : true,
-                        addBatchIdToGeneratedShaders : options.addBatchIdToGeneratedShaders
+                        ready : true
                     });
                 }
 
@@ -540,7 +533,8 @@ define([
          *
          * @private
          */
-        this._pickObject = options.pickObject;
+        this.pickPrimitive = options.pickPrimitive;
+
         this._allowPicking = defaultValue(options.allowPicking, true);
 
         this._ready = false;
@@ -636,7 +630,6 @@ define([
         this._pickFragmentShaderLoaded = options.pickFragmentShaderLoaded;
         this._pickUniformMapLoaded = options.pickUniformMapLoaded;
         this._ignoreCommands = defaultValue(options.ignoreCommands, false);
-        this._requestType = options.requestType;
         this._upAxis = defaultValue(options.upAxis, Axis.Y);
 
         /**
@@ -687,10 +680,10 @@ define([
         this._cachedRendererResources = undefined;
         this._loadRendererResourcesFromCache = false;
 
-        this._cachedGeometryByteLength = 0;
-        this._cachedTexturesByteLength = 0;
-        this._geometryByteLength = 0;
-        this._texturesByteLength = 0;
+        this._cachedVertexMemorySizeInBytes = 0;
+        this._cachedTextureMemorySizeInBytes = 0;
+        this._vertexMemorySizeInBytes = 0;
+        this._textureMemorySizeInBytes = 0;
         this._trianglesLength = 0;
 
         this._nodeCommands = [];
@@ -1008,13 +1001,13 @@ define([
         },
 
         /**
-         * Gets the model's geometry memory in bytes. This includes all vertex and index buffers.
+         * Gets the model's vertex memory in bytes. This includes all vertex and index buffers.
          *
          * @private
          */
-        geometryByteLength : {
+        vertexMemorySizeInBytes : {
             get : function() {
-                return this._geometryByteLength;
+                return this._vertexMemorySizeInBytes;
             }
         },
 
@@ -1023,20 +1016,20 @@ define([
          *
          * @private
          */
-        texturesByteLength : {
+        textureMemorySizeInBytes : {
             get : function() {
-                return this._texturesByteLength;
+                return this._textureMemorySizeInBytes;
             }
         },
 
         /**
-         * Gets the model's cached geometry memory in bytes. This includes all vertex and index buffers.
+         * Gets the model's cached vertex memory in bytes. This includes all vertex and index buffers.
          *
          * @private
          */
-        cachedGeometryByteLength : {
+        cachedVertexMemorySizeInBytes : {
             get : function() {
-                return this._cachedGeometryByteLength;
+                return this._cachedVertexMemorySizeInBytes;
             }
         },
 
@@ -1045,9 +1038,9 @@ define([
          *
          * @private
          */
-        cachedTexturesByteLength : {
+        cachedTextureMemorySizeInBytes : {
             get : function() {
-                return this._cachedTexturesByteLength;
+                return this._cachedTextureMemorySizeInBytes;
             }
         }
     });
@@ -1218,7 +1211,7 @@ define([
             setCachedGltf(model, cachedGltf);
             gltfCache[cacheKey] = cachedGltf;
 
-            RequestScheduler.request(url, loadArrayBuffer, options.headers, options.requestType).then(function(arrayBuffer) {
+            loadArrayBuffer(url, options.headers).then(function(arrayBuffer) {
                 var array = new Uint8Array(arrayBuffer);
                 if (containsGltfMagic(array)) {
                     // Load binary glTF
@@ -1430,8 +1423,7 @@ define([
                 else if (buffer.type === 'arraybuffer') {
                     ++model._loadResources.pendingBufferLoads;
                     var bufferPath = joinUrls(model._baseUri, buffer.uri);
-                    var promise = RequestScheduler.request(bufferPath, loadArrayBuffer, undefined, model._requestType);
-                    promise.then(bufferLoad(model, id)).otherwise(getFailedLoadFunction(model, 'buffer', bufferPath));
+                    loadArrayBuffer(bufferPath).then(bufferLoad(model, id)).otherwise(getFailedLoadFunction(model, 'buffer', bufferPath));
                 }
             }
         }
@@ -1513,8 +1505,7 @@ define([
                 } else {
                     ++model._loadResources.pendingShaderLoads;
                     var shaderPath = joinUrls(model._baseUri, shader.uri);
-                    var promise = RequestScheduler.request(shaderPath, loadText, undefined, model.requestType);
-                    promise.then(shaderLoad(model, shader.type, id)).otherwise(getFailedLoadFunction(model, 'shader', shaderPath));
+                    loadText(shaderPath).then(shaderLoad(model, shader.type, id)).otherwise(getFailedLoadFunction(model, 'shader', shaderPath));
                 }
             }
         }
@@ -1615,11 +1606,11 @@ define([
 
                     var promise;
                     if (ktxRegex.test(imagePath)) {
-                        promise = RequestScheduler.request(imagePath, loadKTX, undefined, model._requestType);
+                        promise = loadKTX(imagePath);
                     } else if (crnRegex.test(imagePath)) {
-                        promise = RequestScheduler.request(imagePath, loadCRN, undefined, model._requestType);
+                        promise = loadCRN(imagePath);
                     } else {
-                        promise = RequestScheduler.request(imagePath, loadImage, undefined, model._requestType);
+                        promise = loadImage(imagePath);
                     }
                     promise.then(imageLoad(model, id)).otherwise(getFailedLoadFunction(model, 'image', imagePath));
                 }
@@ -1820,7 +1811,7 @@ define([
         });
         vertexBuffer.vertexArrayDestroyable = false;
         model._rendererResources.buffers[bufferViewId] = vertexBuffer;
-        model._geometryByteLength += vertexBuffer.sizeInBytes;
+        model._vertexMemorySizeInBytes += vertexBuffer.sizeInBytes;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1858,7 +1849,7 @@ define([
         });
         indexBuffer.vertexArrayDestroyable = false;
         model._rendererResources.buffers[bufferViewId] = indexBuffer;
-        model._geometryByteLength += indexBuffer.sizeInBytes;
+        model._vertexMemorySizeInBytes += indexBuffer.sizeInBytes;
     }
 
     var scratchVertexBufferJob = new CreateVertexBufferJob();
@@ -2368,7 +2359,7 @@ define([
         }
 
         model._rendererResources.textures[gltfTexture.id] = tx;
-        model._texturesByteLength += tx.sizeInBytes;
+        model._textureMemorySizeInBytes += tx.sizeInBytes;
     }
 
     var scratchCreateTextureJob = new CreateTextureJob();
@@ -3456,16 +3447,12 @@ define([
 
                 // GLTF_SPEC: Offical means to determine translucency. https://github.com/KhronosGroup/glTF/issues/105
                 var isTranslucent = rs.blending.enabled;
-
-                var owner = model._pickObject;
-                if (!defined(owner)) {
-                    owner = {
-                        primitive : model,
-                        id : model.id,
-                        node : runtimeNode.publicNode,
-                        mesh : runtimeMeshesByName[mesh.name]
-                    };
-                }
+                var owner = {
+                    primitive : defaultValue(model.pickPrimitive, model),
+                    id : model.id,
+                    node : runtimeNode.publicNode,
+                    mesh : runtimeMeshesByName[mesh.name]
+                };
 
                 var castShadows = ShadowMode.castShadows(model._shadows);
                 var receiveShadows = ShadowMode.receiveShadows(model._shadows);
@@ -3640,7 +3627,7 @@ define([
         model._runtime.nodes = runtimeNodes;
     }
 
-    function getGeometryByteLength(buffers) {
+    function getVertexMemorySizeInBytes(buffers) {
         var memory = 0;
         for (var id in buffers) {
             if (buffers.hasOwnProperty(id)) {
@@ -3650,7 +3637,7 @@ define([
         return memory;
     }
 
-    function getTexturesByteLength(textures) {
+    function getTextureMemorySizeInBytes(textures) {
         var memory = 0;
         for (var id in textures) {
             if (textures.hasOwnProperty(id)) {
@@ -3682,8 +3669,8 @@ define([
                 createVertexArrays(model, context);
             }
 
-            model._cachedGeometryByteLength += getGeometryByteLength(cachedResources.buffers);
-            model._cachedTexturesByteLength += getTexturesByteLength(cachedResources.textures);
+            model._cachedVertexMemorySizeInBytes += getVertexMemorySizeInBytes(cachedResources.buffers);
+            model._cachedTextureMemorySizeInBytes += getTextureMemorySizeInBytes(cachedResources.textures);
         } else {
             createBuffers(model, frameState); // using glTF bufferViews
             createPrograms(model, frameState);
@@ -4666,7 +4653,6 @@ define([
         // and then have them visible immediately when show is set to true.
         if (show && !this._ignoreCommands) {
             // PERFORMANCE_IDEA: This is terrible
-            var commandList = frameState.commandList;
             var passes = frameState.passes;
             var nodeCommands = this._nodeCommands;
             var length = nodeCommands.length;
@@ -4682,13 +4668,13 @@ define([
                     if (nc.show) {
                         var command = translucent ? nc.translucentCommand : nc.command;
                         command = silhouette ? nc.silhouetteModelCommand : command;
-                        commandList.push(command);
+                        frameState.addCommand(command);
                         boundingVolume = nc.command.boundingVolume;
                         if (frameState.mode === SceneMode.SCENE2D &&
                             (boundingVolume.center.y + boundingVolume.radius > idl2D || boundingVolume.center.y - boundingVolume.radius < idl2D)) {
                             var command2D = translucent ? nc.translucentCommand2D : nc.command2D;
                             command2D = silhouette ? nc.silhouetteModelCommand2D : command2D;
-                            commandList.push(command2D);
+                            frameState.addCommand(command2D);
                         }
                     }
                 }
@@ -4698,11 +4684,11 @@ define([
                     for (i = 0; i < length; ++i) {
                         nc = nodeCommands[i];
                         if (nc.show) {
-                            commandList.push(nc.silhouetteColorCommand);
+                            frameState.addCommand(nc.silhouetteColorCommand);
                             boundingVolume = nc.command.boundingVolume;
                             if (frameState.mode === SceneMode.SCENE2D &&
                                 (boundingVolume.center.y + boundingVolume.radius > idl2D || boundingVolume.center.y - boundingVolume.radius < idl2D)) {
-                                commandList.push(nc.silhouetteColorCommand2D);
+                                frameState.addCommand(nc.silhouetteColorCommand2D);
                             }
                         }
                     }
@@ -4714,12 +4700,12 @@ define([
                     nc = nodeCommands[i];
                     if (nc.show) {
                         var pickCommand = nc.pickCommand;
-                        commandList.push(pickCommand);
+                        frameState.addCommand(pickCommand);
 
                         boundingVolume = pickCommand.boundingVolume;
                         if (frameState.mode === SceneMode.SCENE2D &&
                             (boundingVolume.center.y + boundingVolume.radius > idl2D || boundingVolume.center.y - boundingVolume.radius < idl2D)) {
-                            commandList.push(nc.pickCommand2D);
+                            frameState.addCommand(nc.pickCommand2D);
                         }
                     }
                 }

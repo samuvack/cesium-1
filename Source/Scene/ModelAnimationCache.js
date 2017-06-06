@@ -1,6 +1,7 @@
 /*global define*/
 define([
         '../Core/Cartesian3',
+        '../Core/defaultValue',
         '../Core/defined',
         '../Core/LinearSpline',
         '../Core/Matrix4',
@@ -10,6 +11,7 @@ define([
         './getBinaryAccessor'
     ], function(
         Cartesian3,
+        defaultValue,
         defined,
         LinearSpline,
         Matrix4,

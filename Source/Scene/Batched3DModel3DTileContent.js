@@ -1,6 +1,7 @@
 /*global define*/
 define([
         '../Core/Color',
+        '../Core/ComponentDatatype',
         '../Core/defaultValue',
         '../Core/defined',
         '../Core/defineProperties',
@@ -11,6 +12,7 @@ define([
         '../Core/getBaseUri',
         '../Core/getStringFromTypedArray',
         '../Core/RequestType',
+        '../ThirdParty/when',
         './Cesium3DTileBatchTable',
         './Cesium3DTileFeature',
         './Cesium3DTileFeatureTable',
@@ -18,6 +20,7 @@ define([
         './Model'
     ], function(
         Color,
+        ComponentDatatype,
         defaultValue,
         defined,
         defineProperties,
@@ -28,6 +31,7 @@ define([
         getBaseUri,
         getStringFromTypedArray,
         RequestType,
+        when,
         Cesium3DTileBatchTable,
         Cesium3DTileFeature,
         Cesium3DTileFeatureTable,

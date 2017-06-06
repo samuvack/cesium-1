@@ -343,7 +343,7 @@ define([
     };
 
     /**
-     * Duplicates a Rectangle.
+     * Duplicates an Rectangle.
      *
      * @param {Rectangle} rectangle The rectangle to clone.
      * @param {Rectangle} [result] The object onto which to store the result, or undefined if a new instance should be created.
@@ -426,7 +426,7 @@ define([
     };
 
     /**
-     * Checks a Rectangle's properties and throws if they are not in valid ranges.
+     * Checks an Rectangle's properties and throws if they are not in valid ranges.
      *
      * @param {Rectangle} rectangle The rectangle to validate
      *

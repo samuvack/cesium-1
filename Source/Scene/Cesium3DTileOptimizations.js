@@ -2,12 +2,16 @@
 define([
         '../Core/Cartesian3',
         '../Core/Check',
+        '../Core/defaultValue',
+        '../Core/freezeObject',
         './Cesium3DTileOptimizationHint',
         './TileBoundingRegion',
         './TileOrientedBoundingBox'
     ], function(
         Cartesian3,
         Check,
+        defaultValue,
+        freezeObject,
         Cesium3DTileOptimizationHint,
         TileBoundingRegion,
         TileOrientedBoundingBox) {

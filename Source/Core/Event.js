@@ -1,12 +1,12 @@
 /*global define*/
 define([
-        './Check',
         './defined',
-        './defineProperties'
+        './defineProperties',
+        './DeveloperError'
     ], function(
-        Check,
         defined,
-        defineProperties) {
+        defineProperties,
+        DeveloperError) {
     'use strict';
 
     /**
@@ -65,7 +65,9 @@ define([
      */
     Event.prototype.addEventListener = function(listener, scope) {
         //>>includeStart('debug', pragmas.debug);
-        Check.typeOf.func('listener', listener);
+        if (typeof listener !== 'function') {
+            throw new DeveloperError('listener is required and must be a function.');
+        }
         //>>includeEnd('debug');
 
         this._listeners.push(listener);
@@ -89,7 +91,9 @@ define([
      */
     Event.prototype.removeEventListener = function(listener, scope) {
         //>>includeStart('debug', pragmas.debug);
-        Check.typeOf.func('listener', listener);
+        if (typeof listener !== 'function') {
+            throw new DeveloperError('listener is required and must be a function.');
+        }
         //>>includeEnd('debug');
 
         var listeners = this._listeners;

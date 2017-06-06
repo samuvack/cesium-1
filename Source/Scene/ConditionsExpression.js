@@ -1,11 +1,15 @@
 /*global define*/
 define([
         '../Core/clone',
+        '../Core/Color',
+        '../Core/defaultValue',
         '../Core/defined',
         '../Core/defineProperties',
         './Expression'
     ], function(
         clone,
+        Color,
+        defaultValue,
         defined,
         defineProperties,
         Expression) {
